@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candidate AI Assistant</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans min-h-screen flex flex-col">
+
+    <header class="bg-gray-800 border-b border-gray-700 p-4 sticky top-0 z-10 shadow-md">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold text-indigo-400 tracking-wide">My Info AI</h1>
+            <button id="load-resume-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 px-4 rounded transition duration-200 shadow">
+                Parse Resume
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-5xl w-full mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 p-6 overflow-hidden">
+        
+        <section class="md:col-span-1 bg-gray-800 rounded-lg p-4 border border-gray-700 flex flex-col h-[calc(100vh-140px)] overflow-y-auto">
+            <h2 class="text-lg font-semibold text-gray-200 mb-4 border-b border-gray-700 pb-2">Profile Overview</h2>
+            <div id="profile-data" class="space-y-4 text-sm text-gray-400">
+                <p class="italic text-center py-8">Click "Parse Resume" to load candidate profile data.</p>
+            </div>
+        </section>
+
+        <section class="md:col-span-2 bg-gray-800 rounded-lg border border-gray-700 flex flex-col h-[calc(100vh-140px)] shadow-inner">
+            <div class="p-4 border-b border-gray-700 bg-gray-800 rounded-t-lg">
+                <h2 class="text-lg font-semibold text-gray-200">Chat with Candidate AI</h2>
+            </div>
+
+            <div id="chat-box" class="flex-1 p-4 overflow-y-auto space-y-4 bg-gray-950">
+                <div class="flex items-start gap-3">
+                    <div class="bg-indigo-900/50 border border-indigo-700 text-indigo-200 rounded-lg p-3 max-w-[85%] shadow-sm">
+                        Hello! I am the AI representative for the candidate. Ask me any questions about their experience, skills, or projects.
+                    </div>
+                </div>
+            </div>
+
+            <form id="chat-form" class="p-4 border-t border-gray-700 bg-gray-800 rounded-b-lg flex gap-2">
+                <input 
+                    type="text" 
+                    id="user-input" 
+                    placeholder="Ask about experience, technical skills, education..." 
+                    class="flex-1 bg-gray-900 border border-gray-700 rounded px-4 py-2.5 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition"
+                    required
+                >
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 px-6 py-2.5 rounded font-medium text-white transition shadow">
+                    Send
+                </button>
+            </form>
+        </section>
+
+    </main>
+
+    <script>
+        const API_URL = 'http://125.0.0.1:8000';
+        const loadResumeBtn = document.getElementById('load-resume-btn');
+        const profileDataDiv = document.getElementById('profile-data');
+        const chatBox = document.getElementById('chat-box');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+
+        async function parseResume() {
+            loadResumeBtn.disabled = true;
+            loadResumeBtn.innerText = 'Parsing...';
+            profileDataDiv.innerHTML = '<p class="italic text-center py-8 text-indigo-400">Extracting details from PDF...</p>';
+            
+            try {
+                const response = await axios.get(`http://127.0.0.1:8000/`);
+                const data = response.data;
+                
+                let experiencesHtml = '';
+                if (data.experiences && data.experiences.length > 0) {
+                    data.experiences.forEach(exp => {
+                        experiencesHtml += `
+                            <div class="mb-3 p-2 bg-gray-900/50 rounded border border-gray-700/50">
+                                <div class="font-medium text-gray-200">${exp.role || 'Role'}</div>
+                                <div class="text-xs text-indigo-400">${exp.company || 'Company'} (${exp.duration || 'N/A'})</div>
+                                <p class="text-xs mt-1 text-gray-400">${exp.description || ''}</p>
+                            </div>
+                        `;
+                    });
+                }
+
+                let skillsHtml = '';
+                if (data.skills && data.skills.length > 0) {
+                    data.skills.forEach(skill => {
+                        skillsHtml += `<span class="inline-block bg-indigo-950 text-indigo-300 border border-indigo-800 text-xs px-2 py-0.5 rounded mr-1 mb-1">${skill}</span>`;
+                    });
+                }
+
+                profileDataDiv.innerHTML = `
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-0.5">Name</label>
+                        <div class="text-base font-semibold text-gray-200">${data.name || 'N/A'}</div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-0.5">Email</label>
+                            <div class="text-xs truncate text-gray-300">${data.email || 'N/A'}</div>
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-0.5">Phone</label>
+                            <div class="text-xs text-gray-300">${data.phone || 'N/A'}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-0.5">Experience Years</label>
+                        <div class="text-sm text-gray-300">${data.total_experience_years || '0'} Years</div>
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-1">Skills</label>
+                        <div class="flex flex-wrap">${skillsHtml || 'None detected'}</div>
+                    </div>
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-gray-500 font-bold mb-2">Work History</label>
+                        <div class="space-y-2">${experiencesHtml || 'None detected'}</div>
+                    </div>
+                `;
+                loadResumeBtn.innerText = 'Parsed Successfully';
+            } catch (error) {
+                console.error(error);
+                profileDataDiv.innerHTML = '<p class="italic text-center py-8 text-red-400">Failed to connect to backend server.</p>';
+                loadResumeBtn.disabled = false;
+                loadResumeBtn.innerText = 'Parse Resume';
+            }
+        }
+
+        function appendMessage(sender, text) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'flex items-start gap-3';
+            
+            const msgDiv = document.createElement('div');
+            if (sender === 'user') {
+                wrapper.classList.add('justify-end');
+                msgDiv.className = 'bg-gray-800 border border-gray-700 text-gray-200 rounded-lg p-3 max-w-[85%] shadow-sm';
+            } else {
+                msgDiv.className = 'bg-indigo-900/40 border border-indigo-800/60 text-indigo-100 rounded-lg p-3 max-w-[85%] shadow-sm';
+            }
+            
+            msgDiv.innerText = text;
+            wrapper.appendChild(msgDiv);
+            chatBox.appendChild(wrapper);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        loadResumeBtn.addEventListener('click', parseResume);
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            appendMessage('user', text);
+            userInput.value = '';
+
+            try {
+                const response = await axios.post(`http://127.0.0.1:8000/chat`, { question: text });
+                appendMessage('ai', response.data.answer);
+            } catch (error) {
+                console.error(error);
+                appendMessage('ai', 'Error: Unable to reach the AI engine backend.');
+            }
+        });
+    </script>
+</body>
+</html>
